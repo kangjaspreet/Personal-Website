@@ -1,0 +1,152 @@
+<!doctype html>
+<html>
+<head>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+		<title>Jaspreet Kang's Website </title>
+			<link href="Stats140Housing.css" rel="stylesheet">
+</head>
+
+
+	<body>
+		<header>
+			<nav class="navbar navbar-expand-lg navbar-dark" style= "background-color: #8f2e2b;">
+				<a class="navbar-brand" href="index.html"><img src="JK.jpg" alt="JK" width="50" height="40"></a>
+				<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+				<span class="navbar-toggler-icon"></span>
+				</button>
+
+				<div class="collapse navbar-collapse" id="navbarSupportedContent">
+					<ul class="navbar-nav mr-auto">
+				    	<li class="nav-item">
+				    		<a class="nav-link" href="index.html">Home</a>
+				      	</li>
+				      	<li class="nav-item">
+				        	<a class="nav-link" href="About Me.html">About Me</a>
+				      	</li>
+				      	<li class="nav-item dropdown">
+				        	<a class="nav-link active dropdown-toggle" href="Projects.html" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Projects</a>
+				        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+				          <a class="dropdown-item" href="Stats140Housing.html">Linear Regression</a>
+				          <a class="dropdown-item" href="Projects.html">Sports Analytics Project</a>
+				          <a class="dropdown-item" href="Projects.html">Financial Statistics Project</a>
+				          <a class="dropdown-item" href="Spatial.html">Spatial/Geostatistical Project</a>
+				          <a class="dropdown-item" href="Projects.html">Logistic Regression</a>
+				          <a class="dropdown-item" href="Projects.html">Random Foresting</a>
+				          <div class="dropdown-divider"></div>
+				          <a class="dropdown-item" href="#">Something else here</a>
+				      	</div>
+				      	</li>
+				      	<li class="nav-item">
+				      		<a class="nav-link" href="Blog.html">Blog</a>
+				      	</li>
+				    </ul>
+				    	<form class="form-inline my-2 my-lg-0">
+				      		<input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
+				      		<button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+				    		</form>
+				  </div>
+			</nav>
+
+		</header>
+
+		<div class="left"></div>
+		<div class="right"></div>
+
+		<h1>Exploring Linear Regression in R, Checking Model Assumptions, and Fixing Violations of Assumptions </h1>
+		<p class="name">by Jaspreet Kang</p>
+		<hr>
+		<p> In this article, we will do a quick run through on how to create a proper linear regression model, with an emphasis on checking model assumptions such as normality, linearity, constant variance of error terms, and the steps to fixing any violations of these model assumptions. The dataset explored in this write-up is a housing dataset in Kings County, Washington which includes Seattle and the cities surrounding Seattle such as Federal Way, Burien, and more. It contains house sale prices sold between May 2014 and May 2015. Each row in the data set is a different house that was bought during our observational period. There are a total of 21,613 houses (or observations) and 21 variables. The variables are:
+
+			<ol>
+				<li><b>Price</b> (Response variable): Price the house was bought for
+				<li><b>ID</b>: House ID</li>
+				<li><b>Date</b>: The date the house was bought, formatted year/month/day</li>
+				<li><b>Bedrooms</b>: Number of  bathrooms in the house</li>
+				<li><b>Bathrooms</b>: Number of  bathrooms in the house</li>
+				<li><b>Sqft Living</b>: Square footage of the apartments interior living space</li>
+				<li><b>Sqft Living15</b>: The square footage of interior housing living space for the nearest 15 houses</li>
+				<li><b>Sqft Lot</b>: Square footage of the land space outside</li>
+				<li><b>Sqft Lot15</b>: The square footage of the land lots of the nearest 15 houses</li>
+				<li><b>Sqft Above</b>: The square footage of the interior housing space above ground level</li>
+				<li><b>Sqft Basement</b>: The square footage of the basement</li>
+				<li><b>Floors</b>: Number of floors</li>
+				<li><b>Water Front</b>: A dummy variable for whether the house has a view of any body of water.</li>
+				<li><b>Views</b>: An index from 0 to 4 of how good the view of the property was, how nice the surrounding area is</li>
+				<li><b>Condition</b>: Overall condition of the house when bought</li>
+				<li><b>Grade</b>: An index from 1 to 13, where 1-3 falls short of building construction and design, 7 has an average level of construction and design, and 11-13 have a high quality level of construction and design</li>
+				<li><b>Year Built</b>: The year the house was built</li>
+				<li><b>Year Renovated</b>: The year the house was last renovated</li>
+				<li><b>Zip Code</b>: area zip code of the house</li>
+				<li><b>Latitude</b>: Latitude</li>
+				<li><b>Longtiude</b>: Longitude</li>
+			</ol>
+		</p>
+		<p>
+		There are a few variables here we are going to adjust to make our dataset more simple. First off, we will get rid of ID since it is a useless variable. Secondly, the variable date is a factor variable that is inputted oddly. For example, a house with the date 'October 13, 2014' is inputted as '20141013T000000'. For some reason, the string 'T000000' is attached at the end for all the observations. Additionally, we are not interested in the exact date, but only interested in the month and date. We can easily fix this by using the substr function. We will substring the first 6 strings and get rid of the rest, and replace this with the original Date variable. By doing this, we reduced our number of levels from 372 to 13 levels, which allows us to see if date has a significant effect on house prices. The last adjustment we will make is convert Zip Code to a city using the library Zipcode in R, and get rid of Zip Code, Latitude, and Longitude altogether for simplicity sake (you could use spatial statistics since we are given coordinates). The R code is shown below:
+		</p>
+
+		<p>
+		Luckily, no NA values exist in this dataset. In most cases, you will be dealing with plenty of NA values, which requires extensive data cleansing. In this case, no data cleansing will be needed. Now that we slighly adjusted our dataset, we are ready to get into modeling!
+		</p>
+		<p>
+		First, we will look at the histogram of our predictor variable, Price. My hunch is it will require a log transformation since there will be houses priced much higher than the average. 
+		</p>
+		<img src="price_histogram.png" alt="Histogram of Price" class="center" style="width:40%">
+		<p>
+		As you can see, the histrogram shows a distribution highly skewed to the right.
+		</p>
+		<img src="logprice_histogram.png" alt="Histogram of Log Price" class="center" style="width:40%">
+		<p>
+		Taking the log transformation, and we see we get rid of most of the skewness, causing the distribution to become relatively normal. Now we can create our linear regression model of Log Price using all the predictor variables, and check for violations of model assumptions. 
+		</p>
+		<p> First, we will create our model using the lm function in R, and use stepwise selection to finalize which predictors should be in our final model. Stepwise selection or regression is an automatic procedure for statistical model selection in cases where there is a large number of potential explanatory variables. It is very simple to do in R. The code is shown below:
+		</p>
+		<p> Stepwise selection removes one variable: Sqft Basement. So now our model becomes log(Price) = all of the predictor variables minus Sqft Basement.
+		</p>
+		<img src="call.PNG" alt="Model" class="center" style="width:30%"> <br>
+		<img src="rsquared.PNG" alt="Model results" class="center" style="width:30%">
+		<p> Building a linear regression model is only half of the work. In order for the model to actually be usable, our model should not violate the assumptions of linear regression, which are:
+			<ol>
+				<li><b>Linearity</b> - The regression model is linear in parameters</li>
+				<li><b>The mean of the residuals is zero</b></li>
+				<li><b>Homoscedasticity</b> - Equal variance</li>
+				<li><b>Normality of residuals</b> - Residuals should be normally distributed</li>
+				<li><b>No perfect multicollinearity</b> - Multicollinearity occurs when the independent variables are too highly correlated with each other</li>
+			</ol>
+		</p>
+		<p> Some of these assumptions are redundant and can be checked in one or two plots. For example, you can check homoscedasticity by looking at a residuals vs fitted values plot and if the points are scattered randomly (meaning without a pattern) around zero, then we can check off homoscedasticity and say the mean of the residuals is zero. 
+		</p>
+		<p> The first assumption we will check for is multicollinearity. To check for multicollinearity, we look at the Variation Inflation Factor (VIF) of each predictor variable. The VIF is the ratio of variance in a model with multiple terms, divided by the variance of a model with one term alone. In simpler terms, it measures how much the variance of an estimated regression coefficient increases due to collinearity. You can do this easily in R by downloading the library 'cars' and using the function 'vif'. If the VIF is greater than 5 for two or more variables, then we remove one variable at a time and check the VIF again until all the VIF values are below 5.
+		</p>
+		<img src="VIF.PNG" alt="Variation Inflation Factor" class="center" style="width:30%">
+		<p> The VIF's for Sqft Living and Sqft Above are both greater than 5. It is important to note that removing both variables from the model is a bad idea. Instead, we will construct two models that removes Sqft Living and keeps Sqft Above, and vice versa in the second model. When removing only Sqft Above, the VIF of Sqft Living remains greater than 5. When removing only Sqft Living, the VIF of Sqft Above drops below 5. Therefore, we decide to create a new model that keeps Sqft Above, but removes Sqft Living, making our new model: Log(price) = all predictor variables - Sqft Living - Sqft Basement
+		</p>
+		<p> Now that we've addressed multicollinearity, we can check the rest of the assumptions. First, we'll check the linearity assumption by plotting the model's fitted values against the observed values of price. 
+		</p>
+		<img src="linear.png" alt="Fitted Values vs Observed" class="center" style="width:40%">
+		<p> We can see that the graph looks linear for the most part, but there are signs that a quadratic function may fit better than a linear function. Therefore, the assumption of linearity is violated.
+		</p>
+		<img src="all.png" alt="Model Plots" class="center" style="width:50%">
+		<p> The plots above help us look at 3 assumptions: The mean of the residuals is zero (top-left plot), Homoscedasticity (top-left and bottom-left plots), and normality of  residuals (top-right plot). No pattern seems to exist among the residuals and the mean of the residuals seems to be equal to zero, if not then a little under zero. However, looking at the Normal Q-Q plot, we see that both tails separate from the line. This violates the normality of the residuals, and hints at possible outliers. We can confirm the possibilty of outliers in the data by looking at the bottom-right plot. Cook's distance is a measure for outliers in the data. In conclusion, our model violates two assumptions: linearity and normality of the residuals. To address these violations, we will first create a new model without the extreme outliers (calculated with Cook's distance method), and then re-check the model's assumptions.
+		</p>
+		<p> After using Cook's distance method, 982 outliers were detected. There are several ways to deal with outliers, such as deleting the observations altogether, converting them to the mean (or median or mode), or creating another model to predict these observations. In this example, we will delete the observations altogether. Deleting 982 observations seems like a lot of wasted observations; however, there are 21613 observations in the dataset, so we are only getting rid of less than 5% of the data. Next, we create our model without the outliers.
+		</p>
+		<img src="finalcall.PNG" alt="Model Without Outliers" class="center" style="width:35%">
+		<img src="finalrsquared.PNG" alt="Model Results" class="center" style="width:30%">
+		<p> Our r-squared value went up slightly from 0.76 to 0.80 with the same amount of predictor variables, which is a good thing. Next step is to check if we corrected the violations of linear model assumptions.
+		</p>
+		<img src="finallinear.png" alt="Fitted Values vs Observed Values (No Outliers)" class="center" style="width:40%"> <br>
+		<img src="finalplot.png" alt="Model Plots (No Outliers)" class="center" style="width:50%">
+		<p> Looking at the plots above, our model became more linear, and the Normal QQ-plot also looks more linear, which means the residuals follow a normal distribution. Since our model does not violate any of the assumptions, we can take a closer look at the performance of our model.
+		</p>
+		<img src="table.PNG" alt="Table of Predictions" class="center" style="width:20%">
+		<p> The mean of the differences in Observed Prices and Predicted Prices comes out to around $40,000 which is not bad at all! Obviously with a deeper inspection and analysis, we can yield better predictions. For example, subsetting the houses into their respective cities and creating models to predict houses prices within each city would likely give us more accurate predictions. But the goal of this article was to show how to quickly create a linear regression model, check for its assumptions, and fix any violations of these assumptions. Thanks for reading!
+		</p>
+
+
+
+		<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+			<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+			<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+	</body>
+</html>

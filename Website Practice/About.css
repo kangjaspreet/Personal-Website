@@ -1,0 +1,33 @@
+body {
+	background: white;
+	margin: 0;
+	font-family: arial;
+}
+
+img.me {
+	margin-top: 30px;
+	margin-bottom: 50px;
+}
+
+p.top {
+	margin-top: 25px;
+	margin-left: 25px;
+}
+
+p.wrap {
+	margin-top: -310px;
+	margin-right: 35%;
+	margin-left: 22%;
+
+}
+
+p.under {
+	margin-top: 90px;
+	margin-right: 35%;
+	margin-left: 25px;
+}
+p {
+	margin-left: 25px;
+	margin-right: 25%;
+	color: black;
+}

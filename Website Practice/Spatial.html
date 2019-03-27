@@ -1,0 +1,279 @@
+<!doctype html>
+<html>
+<head>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+		<title>Jaspreet Kang's Website </title>
+			<link href="spatial.css" rel="stylesheet">
+</head>
+
+
+	<body>
+		<header>
+			<nav class="navbar navbar-expand-lg navbar-dark" style= "background-color: #8f2e2b;">
+				<a class="navbar-brand" href="index.html"><img src="JK.jpg" alt="JK" width="50" height="40"></a>
+				<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+				<span class="navbar-toggler-icon"></span>
+				</button>
+
+				<div class="collapse navbar-collapse" id="navbarSupportedContent">
+					<ul class="navbar-nav mr-auto">
+				    	<li class="nav-item">
+				    		<a class="nav-link" href="index.html">Home</a>
+				      	</li>
+				      	<li class="nav-item">
+				        	<a class="nav-link" href="About Me.html">About Me</a>
+				      	</li>
+				      	<li class="nav-item dropdown">
+				        	<a class="nav-link active dropdown-toggle" href="Projects.html" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Projects</a>
+				        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+				          <a class="dropdown-item" href="Stats140Housing.html">Linear Regression</a>
+				          <a class="dropdown-item" href="Projects.html">Sports Analytics Project</a>
+				          <a class="dropdown-item" href="Projects.html">Financial Statistics Project</a>
+				          <a class="dropdown-item" href="Spatial.html">Spatial/Geostatistical Project</a>
+				          <a class="dropdown-item" href="Projects.html">Logistic Regression</a>
+				          <a class="dropdown-item" href="Projects.html">Random Foresting</a>
+				          <div class="dropdown-divider"></div>
+				          <a class="dropdown-item" href="#">Something else here</a>
+				      	</div>
+				      	</li>
+				      	<li class="nav-item">
+				      		<a class="nav-link" href="Blog.html">Blog</a>
+				      	</li>
+				    </ul>
+				    	<form class="form-inline my-2 my-lg-0">
+				      		<input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
+				      		<button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+				    		</form>
+				  </div>
+			</nav>
+
+		</header>
+
+		<div class="left"></div>
+		<div class="right"></div>
+
+		<h1>Predicting AirBnb Booking Price in Texas Using Geospatial Statistics </h1>
+		<p class="name">by Jaspreet Kang</p>
+		<hr>
+		<p> In this article, we will be trying different kriging methods to predict AirBnb prices in Texas as accurately as possible. The reason we will be utiliizing geospatial statistical methods is because there are only 4 predictor variables that are of use to us:
+
+			<ol>
+				<li><b>Bedrooms</b></li>
+				<li><b>Longitude</b></li>
+				<li><b>Latitude</b></li>
+				<li><b>Date of Listing</b></li>
+				
+			</ol>
+		</p>
+		<p>
+		The dataset I am using is from Kaggle. I will put a download link at the end. The dataset is quite large, which can be computationally taxing to your computer. When performing Kriging and cross validation, my RStudio crashed. For the sake of this article, I reduced the dataset to 2,500 houses. However, this problem can be easily fixed by performing parallel kriging, but that is beyond the scope of this article. 
+		</p>
+
+		<p>
+		The process of creating a predictor model through kriging can be split into 5 parts:
+		<ol>
+			<li>Data Cleaning</li>
+			<li>Addressing Duplicate Coordinates (if any)</li>
+			<li>Preliminary Analysis</li>
+			<li>Computing and Modeling the Semivariogram</li>
+			<li>Ordinary and Universal Kriging</li>
+			<li>Testing the Model</li>
+			<li>Creating Raster Map of Predictions and Variances</li>
+		</ol>
+		</p>
+		<h2>1) Data Cleaning</h2>
+		<p>
+		The first step, always, to data analysis is understanding and cleaning up the data. We know what we are trying to predict (AirBnb booking costs per night). We know what our predictor variables are (location in longitude and latitude, bedrooms, and Date of Listing). We check the structure of our dataset, and it turns out that the variables Booking_cost and Bedrooms_counts are stored as factors. . Each observation for Booking_cost has the string '$' attached in front of a number, meaning the data is inputted as '$48' for example. We want to get rid of the dollar sign so that we can convert the variable to a numeric type. To do this, we use the <b>gsub</b> function.
+		</p>
+		<div class="boxed">air$average_rate_per_night <- as.numeric(gsub("\\$", "", air$average_rate_per_night))</div>
+		<p>Now that we successfully converted the Booking_cost variable to a numeric type, we move on to converting Bedrooms_count variable. The levels of this factor variable includes " " (meaning NA), "Studio", "1", up to "13" bedrooms. We want to convert "Studio" to "0", and " " to "NA". After we change the levels, we convert the factor to the desired type, numeric.
+		</p>
+		<div class="boxed">levels(air$bedrooms_count)<br>
+			table(air$bedrooms_count)<br>
+			air$bedrooms_count <- as.character(air$bedrooms_count) <font color="blue">#Converting the character type first</font><br>
+			air$bedrooms_count[air$bedrooms_count == "Studio"] <- "0"<br>
+			air$bedrooms_count[air$bedrooms_count == ""] <- "NA"<br>
+			air$bedrooms_count <- as.factor(air$bedrooms_count) <font color="blue">#Changing back to factor type</font><br>
+			table(air$bedrooms_count) <font color="blue">#The levels are not in the order we'd like</font><br>
+			levels(air$bedrooms_count) <- c("0", "1", "10", "11", "13", "2", "3", "4", "5", "6", "7", "8", "9", "NA") <font color="blue">#Reordering levels</font><br>
+			air$bedrooms_count <- as.numeric(levels(air$bedrooms_count)[air$bedrooms_count]) <font color="blue">#Converting to numeric</font><br>
+			table(air$bedrooms_count)<br>
+		</div>
+		<p>
+		After getting the desired structure of the dataset, next step is to check for NA values. We can do this easily by using <b>is.na </b>within the <b>colSums </b>function. Surprisingly a low number of NA values exist: 34 for Longitude, Latitude, and Booking_cost, and 3 NA values for Bedrooms_count. We index the row numbers for which the NA values exist for the variable Latitude, and remove these rows or observations altogether from the dataset. The reason why we remove the NA values instead of changing it to the mean or median is because coordinates are an exact piece of information that cannot be guessed or predicted. Additionally, our dataset is so large that removing 34 observations won't affect our model. 
+		</p>
+		<p> After removing the 34 observations, we check for NA values again, and see no more NA values exist under Longitude, Latitude, and Booking_cost. However, the 3 NA values still exist under Bedrooms_count. We index those NA values and simply remove the 3 observations. Now we have a clean dataset with no more NA values, so we can move on to the second part.
+		</p>
+		<h2>2) Addressing Duplicate Coordinates (if any)</h2>
+		<p>
+		Duplicate coordinates can be an issue when performing geospatial statistics as we do not want repeating coordinates and information because of its possible unwanted effect on the semivariogram model. Remember that the semi-variance is a measure of the spatial dependence between two observations as a function of the distance between them. The semivariogram is how the semivariance changes as the distance between observations changes. To check for duplicate coordinates, we use the <b>duplicated</b> function.
+		</p>
+		<div class="boxed">dup_ind <- which(duplicated(air$latitude) == TRUE)<br>
+			air_dup_removed <- air[-dup_ind, ] <font color="blue"># duplicates removed in original dataset</font>
+		</div>
+		<p>
+			We chose to remove all duplicate coordinates since the Booking_cost for each were either exactly the same or really close. A tedious but more effective solution would be to take the mean of Booking_cost of the original + the duplicate coordinates, remove the duplicate coordinates, and change the original Booking_cost value to the mean. 
+		</p>
+		<h2>3) Preliminary Analysis</h2>
+		<p>
+			Before looking at the semivariogram, we perform some preliminary analysis that will help us in modeling the semivariogram. First we check the distribution of our response variable, Booking_costs, to see if it needs a transformation.
+		</p>
+		<img src="histogram.png" alt="Histogram of Booking Costs" class="center" style="width:40%">
+		<p>
+			The histogram shows clear skewness to the right. We do a log transformation.
+		</p>
+		<img src="loghistogram.png" alt="Histogram of Logged Booking Costs" class="center" style="width:40%">
+		<p>
+			The transformation worked well as we see a normal distribution. Next we perform linear regression to check for which predictor variables are significant. This can help us with potentially de-trending the model when constructing the semivariogram model. The linear regression model shows that Bedrooms_count is significant, but Date_of_listing is not. 
+		</p>
+		<p>
+			Next we look at a h-scatterplot, which is a scatterplot of our lagged distances (h). To do this, the <b>gstat</b> library is required.
+		</p>
+		<div class="boxed">air_dup_removed2 <- air_dup_removed<br>
+			<font color="blue">### Our h-scatterplot</font><br>
+			coordinates(air_dup_removed2) <- ~longitude+latitude <font color="blue">#Convert the data into spatial data</font><br> 
+			hscat(average_rate_per_night~1, air_dup_removed2[1:1000,], c(0,1)) <font color="blue">#This will produce the z(s) against z(s+1) plot.</font><br> 
+			hscat(average_rate_per_night~1, air_dup_removed2[1:1000,], c(0,1,1.5, 2,3)) <font color="blue">#This will produce 4 different #h-scatterplots with h=1, 2^0.5, 2, 3.</font>
+		</div>
+		<img src="hscatter.png" alt="H-Scatterplot" class="center" style="width:40%">
+		<p>
+			The h-scatterplot shows us that there is a very weak correlation between the distances, which means there is weak spatial correlation. This is a bit surprising, as one would expect AirBnb prices to be around the same in one area, and vastly different in other areas. However, sometimes a weak spatial correlation exists depending on the dataset given. This is what we are trying to figure out when performing spatial analysis. We can go ahead and construct our semivariogram model.
+		</p>
+		<h2>4) Computing and Modeling the Semivariogram</h2>
+		<p>
+			Since we are trying to create a model that predicts AirBnb Booking costs as accurately as possible, we split our data into a training set and testing set. we randomly sample 70% of the observations, leaving the rest of the 30% to be our testing set. Below is a bubble plot of our training set on the map of Texas and the following code.
+		</p>
+		<img src="maps.png" alt="Bubble Plot" class="center" style="width:40%">
+		<div class="boxed">q <- map("county", "texas") <font color="blue">#map function in maps library</font><br>
+			map(q)<br>
+			points(model_train$x, model_train$y, cex=log(model_train$data)/mean(log(model_train$data)), col="red")<br>
+		</div>
+		<p>
+			We use the library <b>gstat</b> over <b>geoR</b> for this specific case since our response variable is transformed with a logarithm. The <i>formula</i> argument in the <i>gstat</i> function allows you to de-trend the data. We de-trend the data with Bedrooms_count since this predictor variable is the only significant variable. The code below plots the omnidirectional variogram and variogram at 4 directions: South-North, Southwest-Northeast, West-East, and Southeast-Northwest.
+		</p>
+		<div class="boxed"><font color="blue"># omnidirectional variogram</font><br>
+			g <- gstat(id="log_data", formula = log(data)~model_train$bedrooms, locations = ~x+y, data = model_train)<br>
+			q <- variogram(g)<br>
+			plot(q)<br>
+			<br>
+			<font color="blue"># variogram in all directions</font><br>
+			v <- variogram(g, alpha=c(0,45,90,135)) <br>
+			plot(v)
+		</div>
+		<img src="variogram.png" alt="Omnidirection Variogram Plot" class="center" style="width:40%">
+		<img src="allvariogram.png" alt="Variogram Plot at 4 Directions" class="center" style="width:40%">
+		<p>
+			Looking at the omnidirectional variogram above, we can fit the parameters by eye. 
+			<ul class="parameter">
+				<li>Nugget: 0.30</li>
+				<li>Range: 1.0</li>
+				<li>Partial Sill: 0.125</li>
+			</ul>
+		</p>
+		<p>
+			With these parameters, we fit a spherical model to the semivariogram, and use 4 different weights:
+			<ol>
+			<li>Default weights</li>
+			<li>Cressie's weights</li>
+			<li>Ordinary Least Squares</li>
+			<li>Npairs weights</li>
+			</ol> 
+		</p>
+		<div class="boxed"><font color="blue"># Using Gstat, plot the variogram and fit a variogram model using: </font><br>
+			<font color="blue">#1) Default weights</font><br>
+			<font color="blue">#2) Cressie's weights</font><br>
+			<font color="blue">#3) npairs</font><br>
+			<font color="blue">#4) OLS</font><br>
+			v.fit1 <- fit.variogram(q, vgm(0.125,"Sph",1.0,0.30), fit.method=1) <font color="blue"># npairs</font><br>
+			v.fit2 <- fit.variogram(q, vgm(0.125,"Sph",1.0,0.30), fit.method=2) <font color="blue"># Cressie's</font><br>
+			v.fit6 <- fit.variogram(q, vgm(0.125,"Sph",1.0,0.30), fit.method=6) <font color="blue"># OLS</font><br>
+			v.fit7 <- fit.variogram(q, vgm(0.125,"Sph",1.0,0.30), fit.method=7) <font color="blue"># default</font><br>
+			<font color="blue"># par(mfrow=c(1,1))</font><br>
+			plot(q, v.fit1)<br>
+			plot(q, v.fit2)<br>
+			plot(q, v.fit6)<br>
+			plot(q, v.fit7)<br>
+		</div>
+		<img src="var1.png" alt="npairs weights" class="center" style="width:40%">
+		<img src="var2.png" alt="Cressie's weights" class="center" style="width:40%">
+		<img src="var3.png" alt="OLS" class="center" style="width:40%">
+		<img src="var4.png" alt="default weights" class="center" style="width:40%">
+
+		<p>
+			There is not much difference in the fitted models above, so we use Cressie's weights' model because Cressie's weights are more robust to possible outliers. Now that we computed a semivariogram model, we can move on to kriging.
+		</p>
+
+		<h2>Ordinary and Universal Kriging</h2>
+		<p>
+			In geostatistics, kriging is a method of interpolation for which the interpolated values are modeled by a Gaussian process governed by prior covariances. There are different ytpes of kriging that uses a weighted average of neighbouring samples to estimate the 'unknown' value at a given location. In this case, we look at the two most common types of kriging: Ordinary and Universal Kriging.
+		</p>
+		<p>
+			Universal Kriging is exactly like Ordinary Kriging, except that Universal Kriging takes into account a possible trend in the data and simultaneously estimates this trend and uses the resulting errors for kriging. Therefore, we will use both Ordinary and Universal kriging and compare the results to see which one performs better.
+		</p>
+		<div class="boxed"><font color="blue"># Ordinary Kriging using Cressie's weights</font><br>
+			pred <- krige(id="log_data", log(data)~1, locations=~x+y, model=v.fit2, data=model_train, newdata=model_test)<br>
+			<font color="blue"># PRESS calculation</font><br>
+			press <- sum((log(model_test$data) - pred$log_data.pred)^2)<br>
+			press <font color="blue"># PRESS for ordinary kriging is 414.2102</font><br>
+			<br>
+			<font color="blue"># Universal kriging</font><br>
+			pred_uk <- krige(id="log_data", log(data)~bedrooms, locations=~x+y, model=v.fit2, data=model_train, newdata=model_test)<br>
+			<font color="blue"># PRESS calculation</font><br>
+			press <- sum((log(model_test$data) - pred_uk$log_data.pred)^2)<br>
+			press <font color="blue"># PRESS for universal kriging is 238.9227</font>
+		</div>
+		<img src="OK.png" alt="Ordinary Kriging" class="center" style="width:40%">
+		<img src="UK.png" alt="Universal Kriging" class="center" style="width:40%">
+		<p>
+			The graphs above plots the predicted values (from ordinary kriging and universal kriging executed on the testing set) versus the observed values from the testing set. We can clearly see that the universal kriging model performs much better. The correlation is over 20% stronger. Additionally, the PRESS value for OK = 414.2102, and UK = 238.9227. The PRESS value is calculated as the sum of the squares of all the resulting prediction errors, or the sum of the squared differences between observed and predited values. The lower the PRESS value, the better. This is further evidence that Universal Kriging produces the better model.
+		</p>
+
+		<h2>Testing the Model</h2>
+		<p>
+			The table below shows the the first 40 observed and predicted AirBnb booking costs.
+		</p>
+		<img src="geotable.PNG" alt="Observed vs Predicted Table" class="center" style="width: 20%">
+		<p>
+			The mean of the abolute value of the differences between observed and predicted values comes out to $71.69. The table below shows the first 40 predicted values and its variances from kriging.
+		</p>
+		<img src="PredVar.PNG" alt="Kriging Prediction and Variance" class="center" style="width: 20%">
+
+		<h2>Creating Raster Map of Predictions and Variances</h2>
+		<p>
+			Raster maps are highly common in geospatial statistics, as it gives us a visualization of the varying predictions on a coordinate system, or on a geographical map. We will construct our raster map of both the Kriging predictions and variances on a dense grid of our choice. In this case, our dense grid will range the whole area of where our houses or observations lie within.
+		</p>
+		<div class="boxed"><font color="blue">### Producing a raster map of predicted values</font><br>
+			x.range <- as.integer(range(model_test[,1]))<br>
+			y.range <- as.integer(range(model_test[,2]))<br>
+			<br>
+			<font color="blue"># Raster map of predicted values</font><br>
+			qqq <- matrix(pred_uk$log_data.pred, length(seq(from=x.range[1], to=x.range[2], by=1)), length(seq(from=y.range[1], to=y.range[2], by=1)))<br>
+			image(seq(from=x.range[1], to=x.range[2], by=1), seq(from=y.range[1],to=y.range[2], by=1), qqq, xlab="West to East",ylab="South to North", main="Raster map of the predicted values")<br>
+			contour(seq(from=x.range[1], to=x.range[2], by=1), seq(from=y.range[1],to=y.range[2], by=1), qqq, add=TRUE, col="black", labcex=1)<br>
+			<br>
+			<font color="blue"># Variances raster map</font><br>
+			qqq1 <- matrix(pred_uk$log_data.var, length(seq(from=x.range[1], to=x.range[2], by=1)), length(seq(from=y.range[1], to=y.range[2], by=1)))<br>
+			image(seq(from=x.range[1], to=x.range[2], by=1), seq(from=y.range[1],to=y.range[2], by=1), qqq1, xlab="West to East",ylab="South to North", main="Raster map of the variances")<br>
+			contour(seq(from=x.range[1], to=x.range[2], by=1), seq(from=y.range[1],to=y.range[2], by=1), qqq1, add=TRUE, col="black", labcex=1)<br>
+		</div>
+		<img src="rasterpred.png" alt="Raster Map of the Predicted Values" class="center" style="width: 50%">
+		<img src="rastervar.png" alt="Raster Map of the Variances" class="center" style="width: 50%">
+		<p>
+			We can also use the <b>Lattice</b> package to create raster maps.
+		</p>
+		<div class="boxed"><font color="blue"># Using Lattice package</font><br>
+			<font color="blue"># A raster map using the kriged values:</font><br> 
+			levelplot(pred_uk$log_data.pred~x+y, pred_uk, aspect ="iso", main="Universal kriging predictions")<br>
+			<br>
+			<font color="blue"># A raster map using the variances of the kriged values:</font><br>
+			levelplot(pred_uk$log_data.var~x+y, pred_uk, aspect ="iso", main="Universal kriging variances")
+		</div>
+		<img src="latticepred.png" alt="Raster Map of the Predicted Values" class="center" style="width: 50%">
+		<img src="latticevar.png" alt="Raster Map of the Variances" class="center" style="width: 50%">
+
+
+		<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+			<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+			<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+	</body>
+</html>
